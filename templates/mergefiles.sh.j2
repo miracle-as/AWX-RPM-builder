@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+
+SPECFILE=$1
+ADDON=$2
+INSERTAFTER=$3
+DIRECTION=$4
+
+if [[ $DIRECTION == "" ]];
+then
+	DIRECTION="after"
+fi
+
+if [[ $3 == "" ]];
+then
+	echo "usage: rtfm"
+	exit 543
+fi
+
+INSTALLLINE=""
+
+PART1="/tmp/specfilepart1"
+PART2="/tmp/specfilepart2"
+rm $PART1 >/dev/null 2>&1
+rm $PART2 >/dev/null 2>&1
+
+if [[ $DIRECTION == "after" ]];
+then
+	if [[ -f $SPECFILE && -f $ADDON ]];
+	then
+		INSTALLLINE=`grep "$INSERTAFTER" $SPECFILE`
+		grep -P "$INSERTAFTER" $SPECFILE -B100000 |grep -v "^$INSERTAFTER" > $PART1
+		grep -P "$INSERTAFTER" $SPECFILE -A100000 |grep -v "^$INSERTAFTER" > $PART2
+	fi
+	cat $PART1 > $SPECFILE.new
+	echo $INSTALLLINE >> $SPECFILE.new
+	cat $ADDON >> $SPECFILE.new
+	cat $PART2 >> $SPECFILE.new
+	mv -f $SPECFILE.new $SPECFILE
+fi
+
+
+if [[ $DIRECTION == "before" ]];
+then
+	if [[ -f $SPECFILE && -f $ADDON ]];
+	then
+		INSTALLLINE=`grep "$INSERTAFTER" $SPECFILE`
+		grep -P "$INSERTAFTER" $SPECFILE -B100000 |grep -v "^$INSERTAFTER" > $PART1
+		grep -P "$INSERTAFTER" $SPECFILE -A100000 |grep -v "^$INSERTAFTER" > $PART2
+	fi
+	cat $PART1 > $SPECFILE.new
+	cat $ADDON >> $SPECFILE.new
+	echo $INSTALLLINE >> $SPECFILE.new
+	cat $PART2 >> $SPECFILE.new
+	mv -f $SPECFILE.new $SPECFILE
+fi

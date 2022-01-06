@@ -1,0 +1,5 @@
+inventory
+unsorted/*
+Vagrantfile
+virt-lightning.yaml
+offline.token

@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+CMD=$0
+PACKAGE=$1
+PERSIST=$2
+
+source /usr/local/bin/setbuildenv.sh
+
+usage ()
+{
+echo "usage $CMD"
+echo $1
+exit 1
+}
+
+check_args ()
+{
+if [[ $PACKAGE == "" ]];
+then
+	usage "Package missing"
+fi
+}
+
+logme ()
+{
+if [[ $QUIET != "yes" ]];
+then
+	TEXT=`echo $1 | tr ' ' '¤'`
+	TS=`date |tr ' ' '¤'`
+	printf "%-20s : %-32s %s \n" $TS $PACKAGE  $TEXT |tr '¤' ' '
+fi
+
+}
+
+tgz2tgz ()
+{
+	logme "tar gz file to tar gz"
+}
+
+
+
+build_wheels ()
+{
+	python3 setup.py bdist_wheel >/tmp/buildwheels.log 2>&1
+}
+
+
+repackpackage ()
+{
+	if [[ $EXTENTION == "tar.gz" ]];
+	then
+		logme "Extract the source from $FILE"
+		tar xf $TARFILE
+		if [[ $? == 0 ]];
+		then
+			logme "Source extrated"
+			NIT=`ls -1`
+			redis-cli set $MYNIT $NIT >/dev/null 2>&1
+		else
+			logme "Extration failed"
+			exit 22
+		fi
+	fi
+	
+	logme "name in tar $NIT"
+	logme "Check $NIT"
+	MYDIRKEY="pkgdir:${PACKAGE}"
+	redis-cli set $MYDIRKEY "${NIT}" >/dev/null 2>&1
+ 	cd $NIT
+	if [[ $? == 0 ]];
+	then
+		logme "Entered tar dir $NIT"
+	else
+		logme "Error changing to dest $NIT" 
+		exit
+	fi
+
+	logme "Pretty"
+	touch README.md
+	touch CHANGELOG.rst
+
+
+	if [[ $SPECFILECREATE != "HARD" ]];
+	then
+		python3.8 setup.py bdist_rpm --spec-only >/dev/null 2>&1
+		if [[ $? == 0 ]];
+		then
+			logme "Spec file is working on python 3.8"
+			PYCMD="python3.8"
+			SPECFILECREATE="yes"
+		fi
+	fi
+
+	if [ $SPECFILECREATE == "yes" ];
+	then
+		$PYCMD setup.py bdist_rpm --spec-only >/tmp/specfile.$PACKAGE.log 2>&1
+		if [[ $? == 0 ]]
+		then
+			logme "spec file created"
+		else
+			echo "error: $PACKAGE - spec creation failed"
+			cat /tmp/specfile.$package.log
+			exit
+		fi
+	fi
+
+		
+	cd dist
+	SPEC=`ls -1`
+	echo "$SPEC" > /tmp/$NAME-$VERSION.original_specfile_name
+
+	
+	scp  $SPEC root@repos.pip2scl.dk:/usr/share/nginx/html/SPECS 
+	scp  /tmp/$NAME-$VERSION.original_specfile_name root@repos.pip2scl.dk:/usr/share/nginx/html/SPECS 
+	
+	sed -i "s/^python /$PYCMD /" $SPEC
+	sed -i "s/^%{__python} /$PYCMD /" $SPEC
+
+	NAMEINSPEC=`grep "define name " $SPEC |awk '{ print $2 }' `
+	logme "SPEC $SPEC created and saving it"
+	###################
+	FILENAME=`echo ${NAME}-${VERSION}.original.spec |tr -d '_' '-' | tr '[A-Z]' '[a-z]'`
+    scp $SPEC root@repos.pip2scl.dk:/usr/share/nginx/html/SPECS/${FILENAME}
+	if [[ $? == 0 ]];
+	then
+			echo "$FILENAME"
+        	redis-cli set  $MYORGSPECKEY  $SPEC >/dev/null 2>&1
+	else
+		logme "copy failed"
+		exit
+	fi
+	/usr/bin/rm -r /tmp/sandbox /dev/null 2>&1
+}
+
+check_args
+logme "$PACKAGE"
+logme "check source "
+checkpackage
+logme "check source END"

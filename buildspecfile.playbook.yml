@@ -1,0 +1,27 @@
+---
+- name: Setup python
+  hosts: prod_prod_sclbuilder_worker_worker
+  roles:
+  - role: ansible_role_init_pip
+  - role: ansible_role_init_rpmbuild_environment
+    rpmbuild_build_dir: "/root/rpmbuild"
+  become: true
+
+- name: Build openstack components
+  hosts: prod_prod_sclbuilder_worker_worker
+  tasks:
+    - name: add repo
+      yum_repository:
+        name: awx
+        description: "awx-rpm "
+        baseurl: http://repos.pip2scl.dk/RPMS
+        gpgcheck: no
+        enabled: yes
+      become: true
+
+- name: Build openstack components
+  hosts: prod_prod_sclbuilder_worker_worker
+  tasks:
+    - name: Build the scl
+    
+
