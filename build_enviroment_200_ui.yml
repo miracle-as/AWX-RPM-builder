@@ -41,7 +41,6 @@
         group: nginx
         mode: 0644
 
-
     - name: Create a directory if it does not exist
       ansible.builtin.file:
         path: /opt/AWX-RPM
@@ -68,7 +67,6 @@
       pip:
         requirements:  /opt/AWX-RPM/AWX-RPM-builder-ui/requirement.txt
         virtualenv: /opt/AWX-RPM/venv
-
 
     - name: Set the hostname for django
       ansible.builtin.lineinfile:
