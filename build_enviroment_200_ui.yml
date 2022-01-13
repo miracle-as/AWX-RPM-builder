@@ -33,10 +33,10 @@
         owner: awxrpm
         group: nginx
 
-    - name: Setting Start X service
+    - name: Setting uwsgi conf
       template:
         src: uwsgi.ini.j2
-        dest: /etc/uwsgi/
+        dest: /etc/uwsgi/uwsgi.ini
         owner: awxrpm
         group: nginx
         mode: 0644
