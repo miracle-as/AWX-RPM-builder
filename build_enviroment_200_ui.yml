@@ -43,6 +43,14 @@
 
     - name: Create a directory if it does not exist
       ansible.builtin.file:
+        path: /opt/socket
+        state: directory
+        mode: '0775'
+        owner: awxrpm
+        group: nginx
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
         path: /opt/AWX-RPM
         state: directory
         mode: '0755'
