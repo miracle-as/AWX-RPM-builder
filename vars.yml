@@ -4,3 +4,4 @@ db_password: django2know
 db_name: sclbuilder
 repository: awxrpmbuilder-ui
 project: sclbuilder
+django_app: sclbuilder
