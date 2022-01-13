@@ -1,5 +1,5 @@
 ---
-- hosts: prod_sclbuilder_db
+- hosts: web
   become: yes
 
   vars_files:
@@ -11,16 +11,90 @@
       with_items:
         - git
         - nginx
+        - python3-pip
+        - python3-devel
+        - python3-virtualenv
+        - gcc
         
 
   tasks:
+    - name: Add the user 'johnd' with a specific uid and a primary group of 'admin'
+      ansible.builtin.user:
+        name: awxrpm
+        comment: awx-rpm service accont
+        uid: 4242
+        group: nginx
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: /opt/AWX-RPM
+        state: directory
+        mode: '0755'
+        owner: awxrpm
+
     - name: "clone sclbuilder-ui"
-      - name: Git checkout
-        ansible.builtin.git:
-          repo: '
-          dest: /opt/sclbuilder-ui
-          version: release-0.22
+      ansible.builtin.git:
+        repo: 'https://github.com/miracle-as/AWX-RPM-builder-ui.git'
+        dest: /opt/AWX-RPM/AWX-RPM-builder-ui
+        force: yes
+      become: True
+      become_user: awxrpm
+
+    - name: "install pip"
+      pip:
+        name: 
+          - uwsgi
+          - psycopg2-binary
+        virtualenv: /opt/AWX-RPM/venv
+
+    - name: "install requirements"
+      pip:
+        requirements:  /opt/AWX-RPM/AWX-RPM-builder-ui/requirement.txt
+        virtualenv: /opt/AWX-RPM/venv
+
+
+    - name: Set the hostname for django
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: '^ALLOWED_HOSTS = '
+        line: ALLOWED_HOSTS = ["builder.pip2scl.dk", "127.0.0.1"]
+
+    - name: Database engine
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: "'ENGINE': 'django.db.backends.postgresql_psycopg2',"
+        line: "        'ENGINE': 'django.db.backends.postgresql_psycopg2',"
+
+    - name: Database host
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: "'HOST': 'sclbuilder',"
+        line: "        'HOST': 'prod_sclbuilder_db',"
+
+    - name: Database user
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: "'USER': 'sclbuilder',"
+        line: "        'USER': 'sclbuilder',"
+
+    - name: Database password
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: "'PASSWORD': 'django2know',"
+        line: "        'PASSWORD': 'django2know',"
+
+    - name: Database name
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: "'NAME': 'sclbuilder',"
+        line: "        'NAME': 'sclbuilder',"
+
+    - name: Database port
+      ansible.builtin.lineinfile:
+        path: /opt/AWX-RPM/AWX-RPM-builder-ui/sclbuilder/settings.py
+        regexp: "'PORT': '',"
+        line: "        'PORT': '',"
 
   handlers:
-    - name: restart postgres
-      service: name=postgresql state=restarted
+    - name: restart nginx
+      service: name=nginx state=restarted
